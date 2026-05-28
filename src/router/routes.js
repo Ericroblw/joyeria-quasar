@@ -1,18 +1,17 @@
+// src/router/routes.js
 const routes = [
   {
     path: '/',
     component: () => import('layouts/MainLayout.vue'),
     children: [
-      { path: '', component: () => import('pages/IndexPage.vue') }
-    ]
+      { path: '', component: () => import('pages/IndexPage.vue') },
+      { path: 'admin', component: () => import('pages/AdminPage.vue') },
+      { path: 'esmeraldas', component: () => import('pages/EsmeraldaInfoPage.vue') }, // <-- Aquí está tu nueva página
+    ],
   },
-
-  // Always leave this as last one,
-  // but you can also remove it
   {
     path: '/:catchAll(.*)*',
-    component: () => import('pages/ErrorNotFound.vue')
-  }
+    component: () => import('pages/ErrorNotFound.vue'),
+  },
 ]
-
 export default routes
