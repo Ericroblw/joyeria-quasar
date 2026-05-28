@@ -1,17 +1,26 @@
 <!-- src/pages/AdminPage.vue -->
 <template>
-  <q-page class="q-pa-lg">
-    <!-- Cabecera del Panel -->
-    <div class="row justify-between items-center q-mb-md">
-      <div>
+  <q-page class="q-pa-md q-pa-sm-lg">
+    <!-- Cabecera del Panel Adaptable -->
+    <div class="row justify-between items-center q-mb-md q-gutter-y-md">
+      <div class="col-12 col-sm-8">
         <div class="text-h4 text-primary q-mb-xs">Panel de Administración</div>
         <p class="text-grey-8 q-ma-none">Aquí podrás gestionar el inventario de la joyería.</p>
       </div>
-      <!-- Botón para añadir nueva joya -->
-      <q-btn color="primary" icon="add" label="Añadir Joya" @click="abrirFormulario()" />
+      <!-- Botón para añadir nueva joya (Ocupa todo el ancho en móvil) -->
+      <div class="col-12 col-sm-auto text-right">
+        <!-- class="full-width" solo afectará en móviles gracias al grid de Quasar -->
+        <q-btn
+          color="primary"
+          icon="add"
+          label="Añadir Joya"
+          @click="abrirFormulario()"
+          class="full-width"
+        />
+      </div>
     </div>
 
-    <!-- Tabla del Catálogo -->
+    <!-- Tabla del Catálogo (Se hace Grid en móviles automáticamente con $q.screen.xs) -->
     <q-table
       title="Catálogo de Joyas"
       :rows="joyas"
@@ -21,8 +30,9 @@
       style="border: 2px solid var(--q-secondary)"
       :loading="cargando"
       rows-per-page-label="Joyas por página:"
+      :grid="$q.screen.xs"
     >
-      <!-- Columna personalizada para la imagen -->
+      <!-- DISEÑO PARA ORDENADOR (Columnas de la tabla clásica) -->
       <template v-slot:body-cell-imagen="props">
         <q-td :props="props">
           <img
@@ -33,7 +43,6 @@
         </q-td>
       </template>
 
-      <!-- Columna personalizada para los botones de acción -->
       <template v-slot:body-cell-acciones="props">
         <q-td :props="props">
           <q-btn flat round color="positive" icon="edit" @click="abrirFormulario(props.row)">
@@ -44,11 +53,53 @@
           </q-btn>
         </q-td>
       </template>
+
+      <!-- DISEÑO PARA MÓVIL (Tarjetas en lugar de filas) -->
+      <template v-slot:item="props">
+        <div class="q-pa-xs col-12">
+          <q-card bordered flat>
+            <q-card-section class="row items-center q-gutter-sm">
+              <img
+                :src="props.row.imagen_url"
+                style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px"
+                @error="repararImagen"
+              />
+
+              <div class="col">
+                <div class="text-weight-bold text-primary" style="line-height: 1.2">
+                  {{ props.row.nombre }}
+                </div>
+                <div class="text-secondary text-weight-bold q-mt-xs">{{ props.row.precio }} €</div>
+              </div>
+
+              <div class="col-auto column q-gutter-y-xs">
+                <q-btn
+                  flat
+                  round
+                  dense
+                  color="positive"
+                  icon="edit"
+                  @click="abrirFormulario(props.row)"
+                />
+                <q-btn
+                  flat
+                  round
+                  dense
+                  color="negative"
+                  icon="delete"
+                  @click="eliminarJoya(props.row.id)"
+                />
+              </div>
+            </q-card-section>
+          </q-card>
+        </div>
+      </template>
     </q-table>
 
     <!-- Formulario Modal para Añadir / Editar -->
     <q-dialog v-model="mostrarModal" persistent>
-      <q-card style="min-width: 400px">
+      <!-- CORRECCIÓN: Quitamos el min-width que rompía móviles y usamos max-width -->
+      <q-card style="width: 100%; max-width: 500px">
         <q-card-section class="bg-primary text-white row items-center">
           <div class="text-h6">{{ modoEdicion ? 'Editar Joya' : 'Añadir Nueva Joya' }}</div>
           <q-space />
@@ -57,7 +108,6 @@
 
         <q-card-section class="q-pt-md">
           <q-form @submit.prevent="guardarJoya" class="q-gutter-md">
-            <!-- Campos del formulario -->
             <q-input
               outlined
               v-model="formulario.nombre"
@@ -83,14 +133,14 @@
               autogrow
             />
 
+            <!-- Ahora el ejemplo del hint indica una ruta local -->
             <q-input
               outlined
               v-model="formulario.imagen_url"
               label="URL de la imagen"
-              hint="Pega el enlace a la foto (si lo dejas vacío saldrá el logo)"
+              hint="Ej: /img/anillo.jpg o un enlace de internet"
             />
 
-            <!-- Botones Guardar / Cancelar -->
             <div class="row justify-end q-gutter-sm q-mt-md">
               <q-btn flat label="Cancelar" color="primary" v-close-popup />
               <q-btn
@@ -110,7 +160,11 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useQuasar } from 'quasar'
 import { supabase } from '../supabase'
+
+// Importamos la herramienta de Quasar para detectar el tamaño de la pantalla
+const $q = useQuasar()
 
 // Variables de estado
 const joyas = ref([])
@@ -119,7 +173,6 @@ const guardando = ref(false)
 const mostrarModal = ref(false)
 const modoEdicion = ref(false)
 
-// Estructura de nuestro formulario
 const formulario = ref({
   id: null,
   nombre: '',
@@ -128,7 +181,6 @@ const formulario = ref({
   imagen_url: '',
 })
 
-// Configuración de las columnas de la tabla
 const columnas = [
   { name: 'imagen', label: 'Foto', align: 'left', field: 'imagen_url' },
   { name: 'nombre', label: 'Nombre de la Joya', align: 'left', field: 'nombre', sortable: true },
@@ -136,12 +188,10 @@ const columnas = [
   { name: 'acciones', label: 'Acciones', align: 'center' },
 ]
 
-// Cargar joyas al entrar en la página
 onMounted(() => {
   obtenerJoyas()
 })
 
-// Función para descargar los datos de Supabase
 const obtenerJoyas = async () => {
   cargando.value = true
   const { data, error } = await supabase.from('joyas').select('*').order('id', { ascending: false })
@@ -155,14 +205,11 @@ const obtenerJoyas = async () => {
   cargando.value = false
 }
 
-// Función para abrir el formulario (sirve para crear y para editar)
 const abrirFormulario = (joya = null) => {
   if (joya) {
-    // Si pasamos una joya, estamos editando
     modoEdicion.value = true
-    formulario.value = { ...joya } // Copiamos los datos de la joya al formulario
+    formulario.value = { ...joya }
   } else {
-    // Si no pasamos nada, estamos creando una nueva
     modoEdicion.value = false
     formulario.value = {
       id: null,
@@ -175,11 +222,9 @@ const abrirFormulario = (joya = null) => {
   mostrarModal.value = true
 }
 
-// Función para guardar en la base de datos (Supabase)
 const guardarJoya = async () => {
   guardando.value = true
 
-  // Limpiamos los datos a enviar
   const datosJoya = {
     nombre: formulario.value.nombre,
     precio: formulario.value.precio,
@@ -190,11 +235,9 @@ const guardarJoya = async () => {
   let errorSupabase = null
 
   if (modoEdicion.value) {
-    // ACTUALIZAR
     const { error } = await supabase.from('joyas').update(datosJoya).eq('id', formulario.value.id)
     errorSupabase = error
   } else {
-    // CREAR NUEVA
     const { error } = await supabase.from('joyas').insert([datosJoya])
     errorSupabase = error
   }
@@ -206,11 +249,10 @@ const guardarJoya = async () => {
     alert('Error al guardar la joya.')
   } else {
     mostrarModal.value = false
-    obtenerJoyas() // Recargamos la tabla para ver los cambios
+    obtenerJoyas()
   }
 }
 
-// Función para eliminar con aviso de confirmación
 const eliminarJoya = async (id) => {
   const confirmar = confirm(
     '¿Estás seguro de que quieres eliminar esta joya? Esta acción no se puede deshacer.',
@@ -224,13 +266,12 @@ const eliminarJoya = async (id) => {
       console.error('Error al eliminar:', error)
       alert('Hubo un error al intentar eliminar la joya.')
     } else {
-      obtenerJoyas() // Recargamos la tabla para que desaparezca
+      obtenerJoyas()
     }
     cargando.value = false
   }
 }
 
-// Si la imagen falla, muestra el logo por defecto
 const repararImagen = (evento) => {
   evento.target.src = '/favicon.ico'
 }
